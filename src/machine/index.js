@@ -16,6 +16,7 @@ export const machine = Machine(
           },
           // TODO: Genreate activiation states for all possible entrypoints
           'ACTIVATE_#machine.FLOW_A.A': { target: '#machine.FLOW_A.A' },
+          'ACTIVATE_#machine.FLOW_B.A': { target: '#machine.FLOW_B.A' },
         }
       },
       FLOW_A: {
@@ -47,7 +48,7 @@ export const machine = Machine(
             },
             on: {
               BACK: "B",
-              NEXT: "#machine.FLOW_B.A"
+              NEXT: "#machine.FLOW_B.A" // Should trigger new flow activation
             }
           }
         }
