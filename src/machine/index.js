@@ -9,43 +9,82 @@ export const machine = Machine(
     initial: "AWAITING_INITIAL_STATE",
     context: {},
     states: {
-      // TODO: Allow changing flows after initialization
       AWAITING_INITIAL_STATE: {
         on: {
           ACTIVATE_STATE: {
             actions: "activateState"
           },
           // TODO: Genreate activiation states for all possible entrypoints
-          'ACTIVATE_#machine.A': { target: '#machine.A' },
+          'ACTIVATE_#machine.FLOW_A.A': { target: '#machine.FLOW_A.A' },
         }
       },
-      // TODO multiple flows
-      A: {
-        meta: {
-            path: '/a',
-            Component: A,
-        },
-        on: {
-          NEXT: "B"
+      FLOW_A: {
+        initial: 'IDLE',
+        states: {
+          IDLE: {},
+          A: {
+            meta: {
+                path: '/a',
+                Component: A,
+            },
+            on: {
+              // TODO: Update URL upon activation if not 
+              NEXT: "B"
+            }
+          },
+          B: {
+            meta: {
+                Component: B,
+            },
+            on: {
+              BACK: "A",
+              NEXT: "C"
+            }
+          },
+          C: {
+            meta: {
+                Component: C,
+            },
+            on: {
+              BACK: "B",
+              NEXT: "#machine.FLOW_B.A"
+            }
+          }
         }
       },
-      B: {
-        meta: {
-            Component: B,
-        },
-        on: {
-          BACK: "A",
-          NEXT: "C"
+      FLOW_B: {
+        initial: 'IDLE',
+        states: {
+          IDLE: {},
+          A: {
+            // TODO: Update URL upon activation
+            meta: {
+                path: '/d',
+                Component: A,
+            },
+            on: {
+              NEXT: "B"
+            }
+          },
+          B: {
+            meta: {
+                Component: B,
+            },
+            on: {
+              BACK: "A",
+              NEXT: "C"
+            }
+          },
+          C: {
+            meta: {
+                Component: C,
+            },
+            on: {
+              BACK: "B"
+            }
+          }
         }
       },
-      C: {
-        meta: {
-            Component: C,
-        },
-        on: {
-          BACK: "B"
-        }
-      }
     }
   },
   {

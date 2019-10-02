@@ -47,6 +47,9 @@ export const StateMachine = ({ children }) => {
     // Render the component associated with the current state
     return (
         <div>
+            <div>
+                {currentStateNodePath}
+            </div>
             <Component />
             <div>
                 {onBack && <button onClick={onBack}>Back</button>}
