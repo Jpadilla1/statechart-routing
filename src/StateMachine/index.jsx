@@ -24,6 +24,16 @@ export const StateMachine = ({ children }) => {
         }
     })
 
+    const currentStateNodePath = _.get(current.toStrings(), `[${current.toStrings().length - 1}]`);
+    const Component = _.get(current, ['meta', `${machine.id}.${currentStateNodePath}`, 'Component']);
+    const path = _.get(current, ['meta', `${machine.id}.${currentStateNodePath}`, 'path']);
+
+    useEffect(() => {
+        if (current.value !== 'AWAITING_INITIAL_STATE' && path && history.location.pathname !== path) {
+            history.replace({ pathname: path });
+        }
+    })
+
     if (current.value === 'AWAITING_INITIAL_STATE') {
         // Next state queued up? Let's wait for the transition
         if (nextStateNode) {
@@ -34,26 +44,11 @@ export const StateMachine = ({ children }) => {
         return <>{children}</>;
     }
 
-    const currentStateNodePath = _.get(current.toStrings(), `[${current.toStrings().length - 1}]`);
-    const Component = _.get(current, ['meta', `${machine.id}.${currentStateNodePath}`, 'Component']);
-
     // TODO: What about states/substates without components? Need to find the first component along the path and render that.
     if (!Component) {
         // TODO: ERROR! Every machine state must map to a Component
         return null;
     }
-
-    // Loses "Back/Forward" functionality due to `history.replace`, delegating control to UI buttons.
-    service.onTransition((current) => {
-        const currentStateNodePath = _.get(current.toStrings(), `[${current.toStrings().length - 1}]`);
-        const path = _.get(current, ['meta', `${machine.id}.${currentStateNodePath}`, 'path']);
-
-        console.log('TRANSITIONED!')
-        
-        if (path && history.location.pathname !== path) {
-            history.replace({ pathname: path });
-        }
-    })
 
     const onNext = current.nextEvents.includes('NEXT') && (() => send('NEXT'))
     const onBack = current.nextEvents.includes('BACK') && (() => send('BACK'))
