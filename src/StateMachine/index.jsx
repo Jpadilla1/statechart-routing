@@ -2,11 +2,11 @@ import React, { useEffect } from 'react';
 import _ from 'lodash';
 import { useMachine } from '@xstate/react';
 import useReactRouter from 'use-react-router';
-import { makeMachine, resolveState } from "../machine";
+import { getMachine, resolveState } from "../machine";
 
 export const StateMachine = ({ children }) => {
     const { location, match, history } = useReactRouter();
-    const machine = makeMachine(history)
+    const machine = getMachine()
     const [current, send, service] = useMachine(machine);
     
     // Look at the meta.path property across all states to identify a match
@@ -19,7 +19,7 @@ export const StateMachine = ({ children }) => {
         if (current.value === 'AWAITING_INITIAL_STATE') {
             // Activate the initial state if resolved
             if (nextStateNode) {
-                send('ACTIVATE_STATE', { state: nextStateNode.id });
+                send('ACTIVATE_STATE', { stateNodeId: nextStateNode.id });
             }
         }
     })
@@ -42,7 +42,7 @@ export const StateMachine = ({ children }) => {
     const path = _.last(paths);
 
     useEffect(() => {
-        if (current.value !== 'AWAITING_INITIAL_STATE' && path && history.location.pathname !== path) {
+        if (path && history.location.pathname !== path) {
             history.replace({ pathname: path });
         }
     })
