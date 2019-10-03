@@ -1,48 +1,28 @@
-import React, { useEffect } from 'react';
+import React, { useRef } from 'react';
 import _ from 'lodash';
-import { useMachine } from '@xstate/react';
 import useReactRouter from 'use-react-router';
-import { makeMachine, resolveState } from "../machine";
+import { useRouterMachine } from 'use-router-machine';
+import { machineConfig, machineOptions } from "../machine";
 
 export const StateMachine = ({ children }) => {
-    const { location, match, history } = useReactRouter();
-    const machine = makeMachine(history)
-    const [current, send, service] = useMachine(machine);
-    
-    // Look at the meta.path property across all states to identify a match
-    const nextStateNode = resolveState(machine, {
-        locationPath: location.pathname,
-        locationParams: match.params,
+    const { history } = useReactRouter();
+    const { state: current, send, service } = useRouterMachine({
+        config: machineConfig,
+        options: machineOptions,
+        initialContext: {},
+        history,
     });
 
-    useEffect(() => {
-        if (current.value === 'AWAITING_INITIAL_STATE') {
-            // Activate the initial state if resolved
-            if (nextStateNode) {
-                send('ACTIVATE_STATE', { state: nextStateNode.id });
-            }
-        }
-    })
+    const serviceRef = useRef(null)
+    if (!serviceRef.current) {
+        service.onEvent(e => {
+            debugger
+        })
+        serviceRef.current = true;
+    }
 
     const currentStateNodePath = _.get(current.toStrings(), `[${current.toStrings().length - 1}]`);
-    const Component = _.get(current, ['meta', `${machine.id}.${currentStateNodePath}`, 'Component']);
-    const path = _.get(current, ['meta', `${machine.id}.${currentStateNodePath}`, 'path']);
-
-    useEffect(() => {
-        if (current.value !== 'AWAITING_INITIAL_STATE' && path && history.location.pathname !== path) {
-            history.replace({ pathname: path });
-        }
-    })
-
-    if (current.value === 'AWAITING_INITIAL_STATE') {
-        // Next state queued up? Let's wait for the transition
-        if (nextStateNode) {
-            return <div>Loading...</div>
-        }
-
-        // No state found for resolution? Fallback to render children (<Routes />)
-        return <>{children}</>;
-    }
+    const Component = _.get(current, ['meta', `${service.id}.${currentStateNodePath}`, 'Component']);
 
     // TODO: What about states/substates without components? Need to find the first component along the path and render that.
     if (!Component) {
