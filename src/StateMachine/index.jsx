@@ -2,14 +2,15 @@ import React, { useEffect } from 'react';
 import _ from 'lodash';
 import { useMachine } from '@xstate/react';
 import useReactRouter from 'use-react-router';
-import { machine, resolveState } from "../machine";
+import { makeMachine, resolveState } from "../machine";
 
 export const StateMachine = ({ children }) => {
+    const { location, match, history } = useReactRouter();
+    const machine = makeMachine(history)
     const [current, send] = useMachine(machine);
-    const { location, match } = useReactRouter();
     
     // Look at the meta.path property across all states to identify a match
-    const nextStateNode = resolveState({
+    const nextStateNode = resolveState(machine, {
         locationPath: location.pathname,
         locationParams: match.params,
     });

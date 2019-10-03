@@ -3,7 +3,7 @@ import A from '../components/A'
 import B from '../components/B'
 import C from '../components/C'
 
-export const machine = Machine(
+export const makeMachine = history => Machine(
   {
     id: "machine",
     initial: "AWAITING_INITIAL_STATE",
@@ -63,8 +63,9 @@ export const machine = Machine(
                 path: '/d',
                 Component: A,
             },
+            entry: ['historyPush'],
             on: {
-              NEXT: "B"
+              NEXT: "B",
             }
           },
           B: {
@@ -94,12 +95,20 @@ export const machine = Machine(
         return ({
           type: `ACTIVATE_#${event.state}`
         })
-      })
+      }),
+      pushUpdate: assign({
+        path: (_, e) => e.path,
+      }),
+      historyPush: (_, e) => {
+        // TODO: If current path does not match, update it.
+        // TODO: Can we access the current state's meta properties within actions?
+        history.push(`${e.path}`);
+      },
     }
   }
 );
 
-export const resolveState = ({ locationPath, locationParams }) => {
+export const resolveState = (machine, { locationPath, locationParams }) => {
   return machine.stateIds
     .map(stateId => machine.getStateNodeById(stateId))
     .filter(({ meta }) => meta && meta.path)
