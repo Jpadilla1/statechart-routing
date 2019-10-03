@@ -63,7 +63,6 @@ export const makeMachine = history => Machine(
                 path: '/d',
                 Component: A,
             },
-            entry: ['historyPush'],
             on: {
               NEXT: "B",
             }
@@ -96,14 +95,6 @@ export const makeMachine = history => Machine(
           type: `ACTIVATE_#${event.state}`
         })
       }),
-      pushUpdate: assign({
-        path: (_, e) => e.path,
-      }),
-      historyPush: (_, e) => {
-        // TODO: If current path does not match, update it.
-        // TODO: Can we access the current state's meta properties within actions?
-        history.push(`${e.path}`);
-      },
     }
   }
 );

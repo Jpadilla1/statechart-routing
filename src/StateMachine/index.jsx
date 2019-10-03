@@ -7,7 +7,7 @@ import { makeMachine, resolveState } from "../machine";
 export const StateMachine = ({ children }) => {
     const { location, match, history } = useReactRouter();
     const machine = makeMachine(history)
-    const [current, send] = useMachine(machine);
+    const [current, send, service] = useMachine(machine);
     
     // Look at the meta.path property across all states to identify a match
     const nextStateNode = resolveState(machine, {
@@ -37,10 +37,23 @@ export const StateMachine = ({ children }) => {
     const currentStateNodePath = _.get(current.toStrings(), `[${current.toStrings().length - 1}]`);
     const Component = _.get(current, ['meta', `${machine.id}.${currentStateNodePath}`, 'Component']);
 
+    // TODO: What about states/substates without components? Need to find the first component along the path and render that.
     if (!Component) {
         // TODO: ERROR! Every machine state must map to a Component
         return null;
     }
+
+    // Loses "Back/Forward" functionality due to `history.replace`, delegating control to UI buttons.
+    service.onTransition((current) => {
+        const currentStateNodePath = _.get(current.toStrings(), `[${current.toStrings().length - 1}]`);
+        const path = _.get(current, ['meta', `${machine.id}.${currentStateNodePath}`, 'path']);
+
+        console.log('TRANSITIONED!')
+        
+        if (path && history.location.pathname !== path) {
+            history.replace({ pathname: path });
+        }
+    })
 
     const onNext = current.nextEvents.includes('NEXT') && (() => send('NEXT'))
     const onBack = current.nextEvents.includes('BACK') && (() => send('BACK'))
