@@ -30,16 +30,27 @@ export const makeMachine = history => Machine(
             },
             on: {
               // TODO: Update URL upon activation if not 
-              NEXT: "B"
+              NEXT: "B",
             }
           },
           B: {
+            initial: 'B1',
             meta: {
                 Component: B,
             },
-            on: {
-              BACK: "A",
-              NEXT: "C"
+            states: {
+              B1: {
+                on: {
+                  BACK: "#machine.FLOW_A.A",
+                  NEXT: "B2"
+                }
+              },
+              B2: {
+                on: {
+                  BACK: "B1",
+                  NEXT: "#machine.FLOW_A.C"
+                }
+              }
             }
           },
           C: {

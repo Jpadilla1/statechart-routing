@@ -24,9 +24,22 @@ export const StateMachine = ({ children }) => {
         }
     })
 
-    const currentStateNodePath = _.get(current.toStrings(), `[${current.toStrings().length - 1}]`);
-    const Component = _.get(current, ['meta', `${machine.id}.${currentStateNodePath}`, 'Component']);
-    const path = _.get(current, ['meta', `${machine.id}.${currentStateNodePath}`, 'path']);
+    const currentStateNodePath = _.last(current.toStrings());
+
+    const components = current.toStrings()
+        .map(stateNodePath => {
+            return _.get(current, ['meta', `${machine.id}.${stateNodePath}`, 'Component']);
+        })
+        .filter(Component => !!Component)
+
+    const paths = current.toStrings()
+        .map(stateNodePath => {
+            return _.get(current, ['meta', `${machine.id}.${stateNodePath}`, 'path']);
+        })
+        .filter(path => !!path)
+
+    const Component = _.last(components);
+    const path = _.last(paths);
 
     useEffect(() => {
         if (current.value !== 'AWAITING_INITIAL_STATE' && path && history.location.pathname !== path) {
