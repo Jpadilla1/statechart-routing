@@ -1,10 +1,47 @@
-import { Machine, assign, send } from "xstate";
+import { Machine, assign, spawn, send, sendParent } from "xstate";
 import { getNodes } from 'xstate/lib/graph'
 import A from '../components/A'
 import B from '../components/B'
 import C from '../components/C'
 
 const ACTIVATE_TRANSITION_PREFIX = "ACTIVATE_"
+
+const makeAsyncJobMachine = (prefix) => Machine({
+  id: 'asyncJobMachine',
+  initial: "INITIAL",
+  context: {
+    result: null,
+  },
+  states: {
+    INITIAL: {
+      on: {
+        '': "EXECUTING"
+      }
+    },
+    EXECUTING: {
+      invoke: {
+          src: () => new Promise((resolve) => {
+            const wait = setTimeout(() => {
+              clearTimeout(wait);
+              resolve({ value: 'GOOD' });
+            }, 1000)
+          }),
+          onDone: {
+              target: 'SUCCESS',
+              actions: assign((_, event) => ({ result: event.data })),
+          },
+      },
+    },
+    SUCCESS: {
+      onEntry: sendParent(ctx => {
+        return ({
+          type: `${prefix}_SUCCESS`,
+          data: ctx,
+        })
+      }),
+  },
+  },
+})
 
 const machineConfig = {
   id: "machine",
@@ -24,13 +61,36 @@ const machineConfig = {
         IDLE: {},
         A: {
           meta: {
-              path: '/a',
-              Component: A,
+            path: '/a',
+            Component: A,
+          },
+          initial: 'IDLE',
+          states: {
+            IDLE: {},
+            NEXT_PENDING: {
+              entry: assign({
+                someActorRef: () => spawn(makeAsyncJobMachine('NEXT'), 'async-job')
+              }),
+              on: {
+                NEXT_SUCCESS: [
+                  {
+                      cond: (_, { data: { result }}) => {
+                        return result.value === 'GOOD'
+                      },
+                      target: '#machine.FLOW_A.B',
+                  },
+                  {
+                    target: '#machine.FLOW_A.C',
+                  },
+                ],
+              },
+            },
           },
           on: {
-            // TODO: Update URL upon activation if not 
-            NEXT: "B",
-          }
+            NEXT: {
+              target: '.NEXT_PENDING',
+            },
+          },
         },
         B: {
           initial: 'B1',
