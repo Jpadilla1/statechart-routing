@@ -65,6 +65,7 @@ export const StateMachine = ({ children }) => {
 
     const onNext = current.nextEvents.includes('NEXT') && (() => send('NEXT'))
     const onBack = current.nextEvents.includes('BACK') && (() => send('BACK'))
+    const isNextPending = currentStateNodePath.split('.').includes('NEXT_PENDING');
 
     // Render the component associated with the current state
     return (
@@ -75,7 +76,7 @@ export const StateMachine = ({ children }) => {
             <Component />
             <div>
                 {onBack && <button onClick={onBack}>Back</button>}
-                {onNext && <button onClick={onNext}>Next</button>}
+                {onNext && <button onClick={onNext} disabled={isNextPending}>Next</button>}
             </div>
         </div>
     )
