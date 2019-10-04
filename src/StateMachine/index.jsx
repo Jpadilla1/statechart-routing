@@ -15,6 +15,7 @@ export const StateMachine = ({ children }) => {
         locationParams: match.params,
     });
 
+    // TODO: We can remove this bootstrapping phase by creating a dummy machine to use for lookup, using a factory to create the machine with proper initial state.
     useEffect(() => {
         if (current.value === 'AWAITING_INITIAL_STATE') {
             // Activate the initial state if resolved
@@ -57,7 +58,6 @@ export const StateMachine = ({ children }) => {
         return <>{children}</>;
     }
 
-    // TODO: What about states/substates without components? Need to find the first component along the path and render that.
     if (!Component) {
         // TODO: ERROR! Every machine state must map to a Component
         return null;
