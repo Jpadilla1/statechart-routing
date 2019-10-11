@@ -24,10 +24,10 @@ export const wizardMachine = history =>
       id: "wizardMachine",
       initial: "main",
       context: {
-        page: "page1",
+        index: 0,
 
         // history stack
-        stack: []
+        stack: ["page1"]
       },
       states: {
         main: {
@@ -46,24 +46,21 @@ export const wizardMachine = history =>
     {
       actions: {
         pushUpdate: assign({
-          page: (_, e) => e.page,
-          stack: ctx => ctx.stack.concat(ctx.page)
+          index: ctx => ctx.index + 1,
+          stack: (ctx, e) => ctx.stack[ctx.stack.length - 1] !== e.page ? ctx.stack.concat(e.page) : ctx.stack,
         }),
         backUpdate: assign(ctx => {
-          const { stack } = ctx;
-          const newStack = stack.slice(0, stack.length - 1);
-          const prev = stack[stack.length - 1];
+          const { index } = ctx;
 
           return {
-            page: prev,
-            stack: newStack
+            index: index - 1,
           };
         }),
         historyPush: (_, e) => {
           history.push(`/${e.page}`);
         },
-        historyPop: (_, { historyBack } = { historyBack: true }) => {
-          if (!historyBack) {
+        historyPop: (_, { historyBack } = { historyBack: false }) => {
+          if (historyBack) {
             return;
           }
           history.goBack();

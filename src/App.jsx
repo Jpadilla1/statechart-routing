@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useEffect } from "react";
 import { createBrowserHistory } from "history";
 import "./App.css";
 import { pages, wizardMachine } from "./wizard/machine";
@@ -11,20 +11,34 @@ function App() {
     devTools: true
   });
 
-  const { Component, id } = pages[current.context.page];
+  const { Component, id } = pages[current.context.stack[current.context.index]];
 
-  const historyRef = useRef(null);
-
-  // Create the service only once
-  // See https://reactjs.org/docs/hooks-faq.html#how-to-create-expensive-objects-lazily
-  if (historyRef.current === null) {
-    browserHistory.listen((location, action) => {
-      if (action === "POP") {
-        send("BACK", { historyBack: false });
+  useEffect(() => {
+    const unlisten = browserHistory.listen((location, action) => {
+      if (action === "POP" && location.pathname.split('/')[1] === current.context.stack[current.context.index - 1]) {
+        console.log('back: ', JSON.stringify({
+          path: location.pathname.split('/')[1],
+          stack: current.context.stack,
+          index: current.context.index
+        }));
+        send("BACK", { historyBack: true });
+      } else if (action === "POP" && location.pathname.split('/')[1] === current.context.stack[current.context.index + 1]) {
+        console.log('next', JSON.stringify({
+          path: location.pathname.split('/')[1],
+          stack: current.context.stack,
+          index: current.context.index
+        }));
+        send("NEXT", { page: location.pathname.split('/')[1] });
+      } else {
+        console.log('else', JSON.stringify({
+          path: location.pathname.split('/')[1],
+          stack: current.context.stack,
+          index: current.context.index
+        }));
       }
     });
-    historyRef.current = true;
-  }
+    return () => unlisten();
+  }, [current.context.index, current.context.stack, send]);
 
   return (
     <div className="App">
