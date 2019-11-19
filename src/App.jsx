@@ -1,54 +1,92 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import { createBrowserHistory } from "history";
-import "./App.css";
-import { pages, wizardMachine } from "./wizard/machine";
 import { useMachine } from "@xstate/react";
 
-const browserHistory = createBrowserHistory();
+import "./App.css";
+import { State } from "xstate";
+import { pages, wizardMachine } from "./wizard/machine";
+
+const history = createBrowserHistory();
 
 function App() {
-  const [current, send] = useMachine(wizardMachine(browserHistory), {
-    devTools: true
-  });
+  const getHistoryStack = () => {
+    if (history.location.state && history.location.state.state && history.location.state.state.stack) {
+      return history.location.state.state.stack;
+    }
 
-  const { Component, id } = pages[current.context.stack[current.context.index]];
+    return [];
+  };
+
+  const getInitialState = () => {
+    const state = sessionStorage.getItem('state-value');
+
+    return state ? wizardMachine.resolveState(State.create(JSON.parse(state))) : null;
+  };
+
+  const initialState = getInitialState();
+
+  const options = initialState ? { state: initialState }: {}
+
+  console.log(options);
+
+  const [current, send, service] = useMachine(wizardMachine, { ...options, devTools: true });
+  const memStack = useRef([]);
 
   useEffect(() => {
-    const unlisten = browserHistory.listen((location, action) => {
-      if (action === "POP" && location.pathname.split('/')[1] === current.context.stack[current.context.index - 1]) {
-        console.log('back: ', JSON.stringify({
-          path: location.pathname.split('/')[1],
-          stack: current.context.stack,
-          index: current.context.index
-        }));
-        send("BACK", { historyBack: true });
-      } else if (action === "POP" && location.pathname.split('/')[1] === current.context.stack[current.context.index + 1]) {
-        console.log('next', JSON.stringify({
-          path: location.pathname.split('/')[1],
-          stack: current.context.stack,
-          index: current.context.index
-        }));
-        send("NEXT", { page: location.pathname.split('/')[1] });
-      } else {
-        console.log('else', JSON.stringify({
-          path: location.pathname.split('/')[1],
-          stack: current.context.stack,
-          index: current.context.index
-        }));
+    memStack.current = getHistoryStack();
+
+    service.onTransition(state => {
+      sessionStorage.setItem('state-value', JSON.stringify(state));
+    });
+  }, []);
+
+  useEffect(() => {
+    const unListen = history.listen((_, action) => {
+      const historyStack = getHistoryStack();
+
+      console.log("historyStack: ", historyStack);
+      console.log("stack: ", memStack.current);
+
+      if (action === "POP" && memStack.current.length > historyStack.length) {
+        console.log("back: ", memStack.current);
+        send("BACK");
+        memStack.current = historyStack;
+      } else if (action === "POP") {
+        console.log("next", memStack.current);
+        send("NEXT");
+        memStack.current = historyStack;
       }
     });
-    return () => unlisten();
-  }, [current.context.index, current.context.stack, send]);
+    return () => unListen();
+  }, [send, current.value]);
+
+  const handlePush = useCallback((e) => {
+    send(e);
+
+    const historyStack = getHistoryStack();
+
+    memStack.current = [...historyStack, current.value];
+
+    history.push("/", {
+      state: {
+        stack: [...historyStack, current.value],
+      }
+    });
+  }, [send, current]);
+
+  const Component = pages[current.value].Component;
 
   return (
     <div className="App">
       <Component />
-      {pages[`page${id + 1}`] ? (
-        <button onClick={() => send("NEXT", { page: `page${id + 1}` })}>
-          NEXT
-        </button>
-      ) : null}
-      <button onClick={() => send("BACK")}>BACK</button>
+
+      {current.nextEvents
+        .filter(e => e !== "BACK")
+        .map(e => (
+          <button key={e} onClick={() => handlePush(e)}>
+            {e}
+          </button>
+        ))}
     </div>
   );
 }
